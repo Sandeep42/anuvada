@@ -1,3 +1,8 @@
+"""
+Code credits to
+https://github.com/henryre/pytorch-fitmodule
+"""
+
 import numpy as np
 import torch
 

@@ -14,13 +14,12 @@ class AttentionClassifier(FitModule):
     def __init__(self, batch_size, num_tokens, embed_size, gru_hidden, n_classes, bidirectional=True):
 
         super(AttentionClassifier, self).__init__()
-        self.batch_size = batch_size
         self.num_tokens = num_tokens
         self.embed_size = embed_size
         self.gru_hidden = gru_hidden
         self.bidirectional = bidirectional
         self.n_classes = n_classes
-
+        self.batch_size = batch_size
         self.lookup = nn.Embedding(num_tokens, embed_size)
         self.gru = nn.GRU(embed_size, gru_hidden, bidirectional=True)
         self.weight_attention = nn.Parameter(torch.Tensor(2 * gru_hidden, 2 * gru_hidden))
