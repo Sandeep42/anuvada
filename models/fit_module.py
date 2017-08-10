@@ -21,6 +21,7 @@ DEFAULT_OPTIMIZER = partial(SGD, lr=0.001, momentum=0.9)
 
 class FitModule(Module):
 
+
     def fit(self,
             x=None,
             y=None,
@@ -109,6 +110,7 @@ class FitModule(Module):
                 y_batch = Variable(y[batch_idxs])
                 # Backprop
                 opt.zero_grad()
+                self.batch_size = batch_size
                 init_hidden = self.init_hidden()
                 y_batch_pred = self(x_batch, init_hidden)
                 batch_loss = loss(y_batch_pred, y_batch)
