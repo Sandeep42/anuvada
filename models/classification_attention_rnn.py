@@ -11,7 +11,7 @@ from fit_module import FitModule
 
 class AttentionClassifier(FitModule):
 
-    def __init__(self, batch_size, num_tokens, embed_size, gru_hidden, n_classes, bidirectional=True):
+    def __init__(self, num_tokens, embed_size, gru_hidden, n_classes, bidirectional=True):
 
         super(AttentionClassifier, self).__init__()
         self.num_tokens = num_tokens
@@ -19,7 +19,7 @@ class AttentionClassifier(FitModule):
         self.gru_hidden = gru_hidden
         self.bidirectional = bidirectional
         self.n_classes = n_classes
-        self.batch_size = batch_size
+        # self.batch_size = batch_size
         self.lookup = nn.Embedding(num_tokens, embed_size)
         self.gru = nn.GRU(embed_size, gru_hidden, bidirectional=True)
         self.weight_attention = nn.Parameter(torch.Tensor(2 * gru_hidden, 2 * gru_hidden))
@@ -73,7 +73,8 @@ class AttentionClassifier(FitModule):
         return torch.sum(attn_vectors, 0)
 
     def forward(self, padded_sequence, initial_state):
-        print padded_sequence
+        # print padded_sequence.size()
+        # print initial_state.size()
         embedded = self.lookup(padded_sequence)
         rnn_output, _ = self.gru(embedded.transpose(0,1), initial_state)
         attention_squish = self.batch_matmul_bias(rnn_output, self.weight_attention,
@@ -81,8 +82,23 @@ class AttentionClassifier(FitModule):
         attention = self.batch_matmul(attention_squish, self.weight_projection)
         attention_norm = self.attention_softmax(attention.transpose(1, 0))
         attention_vector = self.attention_mul(rnn_output, attention_norm.transpose(1, 0))
-        linear_map = self.final_softmax(attention_vector)
+        # print attention_vector.unsqueeze(0).size()
+        linear_map = self.final_softmax(attention_vector.squeeze(0))
         return linear_map
+
+    def get_attention(self, x, initial_state):
+        padded_sequence = Variable(x)
+        embedded = self.lookup(padded_sequence)
+        rnn_output, _ = self.gru(embedded.transpose(0,1), initial_state)
+        attention_squish = self.batch_matmul_bias(rnn_output, self.weight_attention,
+                                                  self.bias_attention, nonlinearity='tanh')
+        attention = self.batch_matmul(attention_squish, self.weight_projection)
+        attention_norm = self.attention_softmax(attention.transpose(1, 0))
+        attention_vector = self.attention_mul(rnn_output, attention_norm.transpose(1, 0))
+        # print attention_vector.unsqueeze(0).size()
+        # linear_map = self.final_softmax(attention_vector.squeeze(0))
+        return attention_norm
+
 
     def init_hidden(self):
         return Variable(torch.zeros(2, self.batch_size, self.gru_hidden))
