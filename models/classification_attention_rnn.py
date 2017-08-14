@@ -11,16 +11,16 @@ from fit_module import FitModule
 
 class AttentionClassifier(FitModule):
 
-    def __init__(self, num_tokens, embed_size, gru_hidden, n_classes, bidirectional=True):
+    def __init__(self, vocab_size, embed_size, gru_hidden, n_classes, bidirectional=True):
 
         super(AttentionClassifier, self).__init__()
-        self.num_tokens = num_tokens
+        self.num_tokens = vocab_size
         self.embed_size = embed_size
         self.gru_hidden = gru_hidden
         self.bidirectional = bidirectional
         self.n_classes = n_classes
         # self.batch_size = batch_size
-        self.lookup = nn.Embedding(num_tokens, embed_size)
+        self.lookup = nn.Embedding(vocab_size, embed_size)
         self.gru = nn.GRU(embed_size, gru_hidden, bidirectional=True)
         self.weight_attention = nn.Parameter(torch.Tensor(2 * gru_hidden, 2 * gru_hidden))
         self.bias_attention = nn.Parameter(torch.Tensor(2 * gru_hidden, 1))
@@ -94,9 +94,6 @@ class AttentionClassifier(FitModule):
                                                   self.bias_attention, nonlinearity='tanh')
         attention = self.batch_matmul(attention_squish, self.weight_projection)
         attention_norm = self.attention_softmax(attention.transpose(1, 0))
-        attention_vector = self.attention_mul(rnn_output, attention_norm.transpose(1, 0))
-        # print attention_vector.unsqueeze(0).size()
-        # linear_map = self.final_softmax(attention_vector.squeeze(0))
         return attention_norm
 
 

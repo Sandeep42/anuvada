@@ -5,6 +5,7 @@ from spacy.en import English
 from collections import Counter
 import numpy as np
 import os
+import cPickle
 
 nlp = English()
 
@@ -28,12 +29,13 @@ class CreateDataset():
     def create_token2id_dict(self, token_list):
         return {v: k for k, v in enumerate(token_list)}
 
-    def create_dataset(self, x, y, folder_path):
+    def create_dataset(self, x, y, folder_path, max_doc_tokens):
         data_tokens = []
+        len_x = len(x)
         vocab_full = self.prepare_vocabulary(x)
         vocab_threshold = self.create_threshold(vocab_full)
         token2id = self.create_token2id_dict(list(vocab_threshold))
-        token2id['_UNK'] = len(token2id) + 1
+        token2id['_UNK'] = len(token2id) 
         id2token = {k: v for k, v in enumerate(token2id)}
         label2id = {v: k for k, v in enumerate(list(set(y)))}
         id2label = {k: v for k, v in enumerate(label2id)}
@@ -41,17 +43,27 @@ class CreateDataset():
         for doc in x:
             sample_tokens = self.generate_tokens(doc)
             data_tokens.append([token2id.get(y, token2id['_UNK']) for y in sample_tokens])
+        # Padding with dummy _UNK token
+        lengths_array = [len(item) for item in x]
+        max_len = max(lengths_array)
+        data_padded = np.zeros((len_x, max_doc_tokens),dtype=np.int)
+        for i in xrange(data_padded.shape[0]):
+            for j in xrange(data_padded.shape[1]):
+                try:
+                    data_padded[i][j] = data_tokens[i][j]
+                except IndexError:
+                    pass
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
-        np.save(os.path.join(folder_path, 'samples_encoded'), data_tokens)
-        np.save(os.path.join(folder_path, 'token2id'), token2id)
-        np.save(os.path.join(folder_path, 'id2token'), id2token)
-        np.save(os.path.join(folder_path, 'label2id'), label2id)
-        np.save(os.path.join(folder_path, 'id2label'), id2label)
+        np.save(os.path.join(folder_path, 'samples_encoded'), data_padded)
+        np.save(os.path.join(folder_path, 'lengths_mask'), lengths_array)
+        cPickle.dump(token2id, open(os.path.join(folder_path, 'token2id.pkl'), 'w'))
+        cPickle.dump(label2id, open(os.path.join(folder_path, 'label2id.pkl'), 'w'))
         np.save(os.path.join(folder_path, 'labels_encoded'), labels)
         return data_tokens, labels
 
 class LoadData():
+
 
     def __init__(self):
         return None
@@ -60,9 +72,10 @@ class LoadData():
         try:
             samples_encoded = np.load(os.path.join(folder_path,'samples_encoded.npy'))
             labels_encoded = np.load(os.path.join(folder_path, 'labels_encoded.npy'))
-            token2id = np.load(os.path.join(folder_path, 'token2id.npy'))
-            label2id = np.load(os.path.join(folder_path, 'label2id.npy'))
-            return samples_encoded, labels_encoded, token2id, label2id
+            token2id = cPickle.load(open(os.path.join(folder_path, 'token2id.pkl'), 'r'))
+            label2id = cPickle.load(open(os.path.join(folder_path, 'label2id.pkl'), 'r'))
+            length_masks = np.load(os.path.join(folder_path, 'lengths_mask.npy'))
+            return samples_encoded, labels_encoded, token2id, label2id, length_masks
         except:
             print 'No dataset exists in the specified path.'
             return None
