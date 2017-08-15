@@ -6,6 +6,7 @@ from collections import Counter
 import numpy as np
 import os
 import cPickle
+import pandas as pd
 
 nlp = English()
 
@@ -43,27 +44,32 @@ class CreateDataset():
         for doc in x:
             sample_tokens = self.generate_tokens(doc)
             data_tokens.append([token2id.get(y, token2id['_UNK']) for y in sample_tokens])
+        df = pd.DataFrame({'data_tokens': data_tokens,
+                           'labels': labels})
+        df['doc_len'] = df['data_tokens'].apply(lambda x: len(x))
+        df = df.sort_values('doc_len', ascending=False)
         # Padding with dummy _UNK token
-        lengths_array = [len(item) for item in x]
-        max_len = max(lengths_array)
-        data_padded = np.zeros((len_x, max_doc_tokens),dtype=np.int)
+        lengths_array = df.doc_len.values
+        # max_len = max(lengths_array)
+        data_padded = np.zeros((len_x, max_doc_tokens), dtype=np.int)
         for i in xrange(data_padded.shape[0]):
             for j in xrange(data_padded.shape[1]):
                 try:
-                    data_padded[i][j] = data_tokens[i][j]
+                    data_padded[i][j] = df['data_tokens'][i][j]
                 except IndexError:
                     pass
+
         if not os.path.exists(folder_path):
             os.makedirs(folder_path)
+
         np.save(os.path.join(folder_path, 'samples_encoded'), data_padded)
-        np.save(os.path.join(folder_path, 'lengths_mask'), lengths_array)
+        np.save(os.path.join(folder_path, 'lengths_mask'), df.doc_len.values)
         cPickle.dump(token2id, open(os.path.join(folder_path, 'token2id.pkl'), 'w'))
         cPickle.dump(label2id, open(os.path.join(folder_path, 'label2id.pkl'), 'w'))
-        np.save(os.path.join(folder_path, 'labels_encoded'), labels)
+        np.save(os.path.join(folder_path, 'labels_encoded'), df['labels'].values)
         return data_tokens, labels
 
 class LoadData():
-
 
     def __init__(self):
         return None

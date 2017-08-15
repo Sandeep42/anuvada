@@ -25,6 +25,7 @@ class FitModule(Module):
     def fit(self,
             x=None,
             y=None,
+            masks_for_rnn=None,
             batch_size=64,
             epochs=1,
             verbose=1,
@@ -65,6 +66,7 @@ class FitModule(Module):
             loss: training loss
             metrics: list of functions with signatures `metric(y_true, y_pred)`
                 where y_true and y_pred are both Tensors
+            mask_for_rnn: True if gradient masking needs to passed
 
         # Returns
             list of OrderedDicts with training metrics
@@ -108,11 +110,11 @@ class FitModule(Module):
                 batch_idxs = torch.from_numpy(batch_idxs).long()
                 x_batch = Variable(x[batch_idxs])
                 y_batch = Variable(y[batch_idxs])
-                # Backprop
-                opt.zero_grad()
+                mask = masks_for_rnn[batch_start: batch_end]
                 self.batch_size = batch_size
                 init_hidden = self.init_hidden()
-                y_batch_pred = self(x_batch, init_hidden)
+                y_batch_pred = self(x_batch, mask, init_hidden)
+                opt.zero_grad()
                 batch_loss = loss(y_batch_pred, y_batch)
                 batch_loss.backward()
                 opt.step()

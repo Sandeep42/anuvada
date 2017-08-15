@@ -5,6 +5,7 @@ A classification model based on recurrent neural network with attention
 import torch
 import torch.nn as nn
 from torch.autograd import Variable
+from torch.nn.utils.rnn import pack_padded_sequence
 
 from fit_module import FitModule
 
@@ -72,10 +73,11 @@ class AttentionClassifier(FitModule):
                 attn_vectors = torch.cat((attn_vectors, h_i), 0)
         return torch.sum(attn_vectors, 0)
 
-    def forward(self, padded_sequence, initial_state):
+    def forward(self, padded_sequence, mask, initial_state):
         # print padded_sequence.size()
         # print initial_state.size()
-        embedded = self.lookup(padded_sequence)
+        masked_sequence = pack_padded_sequence(padded_sequence, mask)
+        embedded = self.lookup(masked_sequence)
         rnn_output, _ = self.gru(embedded.transpose(0,1), initial_state)
         attention_squish = self.batch_matmul_bias(rnn_output, self.weight_attention,
                                                   self.bias_attention, nonlinearity='tanh')
