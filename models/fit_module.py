@@ -138,7 +138,7 @@ class FitModule(Module):
                 pb.close(log_to_message(log))
         return logs
 
-    def predict(self, x, batch_size=64):
+    def predict(self, x, masks_for_rnn):
         """Generates output predictions for the input samples.
 
         Computation is done in batches.
@@ -151,16 +151,19 @@ class FitModule(Module):
             prediction Tensor.
         """
         n = x.size()[0]
-        train_idxs = np.arange(n)
+        train_idxs = np.arange(n,dtype=np.int64)
+        batch_size = self.batch_size
         batches = make_batches(n, batch_size)
         self.eval()
+        init_hidden = self.init_hidden()
         for batch_i, (batch_start, batch_end) in enumerate(batches):
             # Get batch data
             batch_idxs = train_idxs[batch_start : batch_end]
-            batch_idxs = torch.from_numpy(batch_idxs).long()
+            mask = masks_for_rnn[batch_start: batch_end]
+            batch_idxs = torch.from_numpy(batch_idxs)
             x_batch = Variable(x[batch_idxs])
             # Predict
-            y_batch_pred = self(x_batch).data
+            y_batch_pred = self(x_batch, mask, init_hidden).data
             # Infer prediction shape
             if batch_i == 0:
                 y_pred = torch.zeros((n,) + y_batch_pred.size()[1:])
