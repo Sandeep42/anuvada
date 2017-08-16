@@ -14,21 +14,103 @@ Clone this repo and add it to your python library path.
 
 ### Getting started
 
-```
-# Import packages
+### Importing libraries
+
+
+```python
 import anuvada
 import numpy as np
 import torch
-from anuvada.models.classification_attention_rnn import AttentionClassifier
-# Create model object
-acf = AttentionClassifier(vocab_size=50455,embed_size=300,gru_hidden=512,n_classes=62)
-# Load data
-x = torch.from_numpy(np.random.randint(0,500,(512,30)))
-y = torch.from_numpy(np.random.randint(0,9,512))
-# Call fit function
-loss = acf.fit(x,y,epochs=5,batch_size=128)
-
+import pandas as pd
 ```
+
+
+```python
+from anuvada.models.classification_attention_rnn import AttentionClassifier
+```
+
+### Creating the dataset
+
+
+```python
+from anuvada.datasets.data_loader import CreateDataset
+from anuvada.datasets.data_loader import LoadData
+```
+
+
+```python
+data = CreateDataset()
+```
+
+
+```python
+df = pd.read_csv('MovieSummaries/movie_summary_filtered.csv')
+```
+
+
+```python
+# passing only the first 512 samples, I don't have a GPU!
+y = list(df.Genre.values)[0:512]
+x = list(df.summary.values)[0:512]
+```
+
+
+```python
+x, y = data.create_dataset(x,y, folder_path='test', max_doc_tokens=500)
+```
+
+### Loading created dataset
+
+
+```python
+l = LoadData()
+```
+
+
+```python
+x, y, token2id, label2id, lengths_mask = l.load_data_from_path('test')
+```
+
+### Change into torch vectors
+
+
+```python
+x = torch.from_numpy(x)
+```
+
+
+```python
+y = torch.from_numpy(y)
+```
+
+### Create attention classifier
+
+
+```python
+acf = AttentionClassifier(vocab_size=len(token2id),embed_size=25,gru_hidden=25,n_classes=len(label2id))
+```
+
+
+```python
+loss = acf.fit(x,y, lengths_mask ,epochs=5)
+```
+
+    Epoch 1 / 5
+    [========================================] 100%	loss: 3.9904loss: 3.9904
+
+    Epoch 2 / 5
+    [========================================] 100%	loss: 3.9851loss: 3.9851
+
+    Epoch 3 / 5
+    [========================================] 100%	loss: 3.9783loss: 3.9783
+
+    Epoch 4 / 5
+    [========================================] 100%	loss: 3.9739loss: 3.9739
+
+    Epoch 5 / 5
+    [========================================] 100%	loss: 3.9650loss: 3.9650
+
+
 
 ## To do list
 
