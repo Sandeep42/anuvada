@@ -6,6 +6,7 @@ import torch
 import torch.nn as nn
 from torch.autograd import Variable
 from torch.nn.utils.rnn import pack_padded_sequence
+from torch.nn.utils.rnn import pad_packed_sequence
 
 from fit_module import FitModule
 
@@ -73,17 +74,18 @@ class AttentionClassifier(FitModule):
                 attn_vectors = torch.cat((attn_vectors, h_i), 0)
         return torch.sum(attn_vectors, 0)
 
-    def forward(self, padded_sequence, mask, initial_state):
+    def forward(self, x, mask, initial_state):
         # print padded_sequence.size()
         # print initial_state.size()
-        masked_sequence = pack_padded_sequence(padded_sequence, mask)
-        embedded = self.lookup(masked_sequence)
-        rnn_output, _ = self.gru(embedded.transpose(0,1), initial_state)
-        attention_squish = self.batch_matmul_bias(rnn_output, self.weight_attention,
+        embedded = self.lookup(x)
+        embedded = embedded.transpose(0,1)
+        masked_sequence = pack_padded_sequence(embedded, mask)
+        rnn_output, _ = self.gru(masked_sequence, initial_state)
+        attention_squish = self.batch_matmul_bias(pad_packed_sequence(rnn_output)[0], self.weight_attention,
                                                   self.bias_attention, nonlinearity='tanh')
         attention = self.batch_matmul(attention_squish, self.weight_projection)
         attention_norm = self.attention_softmax(attention.transpose(1, 0))
-        attention_vector = self.attention_mul(rnn_output, attention_norm.transpose(1, 0))
+        attention_vector = self.attention_mul(pad_packed_sequence(rnn_output)[0], attention_norm.transpose(1, 0))
         # print attention_vector.unsqueeze(0).size()
         linear_map = self.final_softmax(attention_vector.squeeze(0))
         return linear_map
