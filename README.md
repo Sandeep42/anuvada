@@ -35,7 +35,7 @@ loss = acf.fit(x,y,epochs=5,batch_size=128)
 - [x] Implement Attention with RNN
 - [ ] Implement Attention Visualisation
 - [x] Implement working Fit Module
-- [x] Implement support for masking gradients in RNN (Partially done)
+- [x] Implement support for masking gradients in RNN (Working now!)
 - [x] Implement a generic data set loader
 - [ ] Implement CNN Classifier with feature map visualisation
 
