@@ -90,11 +90,16 @@ class AttentionClassifier(FitModule):
         linear_map = self.final_softmax(attention_vector.squeeze(0))
         return linear_map
 
-    def get_attention(self, x, initial_state):
-        padded_sequence = Variable(x)
-        embedded = self.lookup(padded_sequence)
-        rnn_output, _ = self.gru(embedded.transpose(0,1), initial_state)
-        attention_squish = self.batch_matmul_bias(rnn_output, self.weight_attention,
+    def get_attention(self, x, mask):
+        # print padded_sequence.size()
+        x = Variable(x)
+        initial_state = self.init_hidden()
+        # print initial_state.size()
+        embedded = self.lookup(x)
+        embedded = embedded.transpose(0,1)
+        masked_sequence = pack_padded_sequence(embedded, mask)
+        rnn_output, _ = self.gru(masked_sequence, initial_state)
+        attention_squish = self.batch_matmul_bias(pad_packed_sequence(rnn_output)[0], self.weight_attention,
                                                   self.bias_attention, nonlinearity='tanh')
         attention = self.batch_matmul(attention_squish, self.weight_projection)
         attention_norm = self.attention_softmax(attention.transpose(1, 0))
