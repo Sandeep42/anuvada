@@ -1,3 +1,7 @@
+This repo is deprecated. Please find the updated package here.
+
+https://github.com/EdGENetworks/anuvada
+
 # Anuvada: Interpretable Models for NLP using PyTorch
 
 One of the common criticisms of deep learning has been it's black box nature. To address this issue, researchers have
